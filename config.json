@@ -6,12 +6,12 @@
     "DefaultModel": "gpt-4.1-mini"
   },
   "DeepSeek": {
-    "ApiKey": "INSERISCI_OPENAI_API_KEY",
+    "ApiKey": "INSERISCI_DEEPSEEK_API_KEY",
     "BaseUrl": "https://api.deepseek.com/chat/completions",
     "DefaultModel": "deepseek-flash"
   },
   "Gemini": {
-    "ApiKey": "INSERISCI_OPENAI_API_KEY",
+    "ApiKey": "INSERISCI_GEMINI_API_KEY",
     "BaseUrl": "https://generativelanguage.googleapis.com/v1beta/models",
     "DefaultModel": "gemini-3.5-flash-lite"
   },
