@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace filetto_con_ai
 {
@@ -24,7 +25,11 @@ namespace filetto_con_ai
 
     public class AiClient
     {
-        private static readonly HttpClient _http = new HttpClient();
+        private static readonly HttpClient _http = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(60)
+        };
+
         private readonly AiConfig _config;
 
         public AiClient()
@@ -35,47 +40,40 @@ namespace filetto_con_ai
         public AiClient(string configPath)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
-
-            _http.Timeout = TimeSpan.FromSeconds(60);
-
             _config = LoadConfig(configPath);
         }
 
-        public async Task<string> AskAsync(AiProvider provider, string prompt)
+        public Task<string> AskAsync(string prompt)
         {
-            ProviderSettings settings = GetProviderSettings(provider);
+            string configuredProvider = _config.DefaultProvider;
+            if (string.IsNullOrWhiteSpace(configuredProvider))
+                return AskAsync(AiProvider.Gemini, prompt);
 
-            return await AskAsync(provider, prompt, settings.DefaultModel);
+            AiProvider provider;
+            if (!Enum.TryParse(configuredProvider, true, out provider) ||
+                !Enum.IsDefined(typeof(AiProvider), provider))
+                throw new InvalidOperationException("DefaultProvider sconosciuto in config.json: " + configuredProvider);
+
+            return AskAsync(provider, prompt);
+        }
+
+        public Task<string> AskAsync(AiProvider provider, string prompt)
+        {
+            return AskAsync(provider, prompt, null);
         }
 
         public async Task<string> AskAsync(AiProvider provider, string prompt, string model)
         {
             ProviderSettings settings = GetProviderSettings(provider);
+            model = model ?? settings.DefaultModel;
+            bool hasApiKey = !string.IsNullOrWhiteSpace(settings.ApiKey) &&
+                             !settings.ApiKey.StartsWith("INSERISCI_", StringComparison.OrdinalIgnoreCase);
+
+            if (!hasApiKey && provider != AiProvider.Ollama)
+                throw new InvalidOperationException("API key " + provider + " mancante nel file config.json.");
 
             switch (provider)
             {
-                case AiProvider.OpenAI:
-                case AiProvider.DeepSeek:
-                case AiProvider.Mistral:
-                case AiProvider.Groq:
-                    return await AskOpenAiCompatibleAsync(settings, prompt, model, null, null);
-
-                case AiProvider.GitHubModels:
-                    return await AskOpenAiCompatibleAsync(
-                        settings,
-                        prompt,
-                        model,
-                        "application/vnd.github+json",
-                        null);
-
-                case AiProvider.Ollama:
-                    return await AskOpenAiCompatibleAsync(
-                        settings,
-                        prompt,
-                        model,
-                        null,
-                        "ollama");
-
                 case AiProvider.Gemini:
                     return await AskGeminiAsync(settings, prompt, model);
 
@@ -83,144 +81,96 @@ namespace filetto_con_ai
                     return await AskAnthropicAsync(settings, prompt, model);
 
                 default:
-                    throw new NotSupportedException("Provider non supportato: " + provider);
+                    return await AskOpenAiCompatibleAsync(provider, settings, prompt, model, hasApiKey);
             }
         }
 
         private async Task<string> AskOpenAiCompatibleAsync(
+            AiProvider provider,
             ProviderSettings settings,
             string prompt,
             string model,
-            string acceptHeader,
-            string fakeBearerToken)
+            bool hasApiKey)
         {
             using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, settings.BaseUrl))
             {
-                if (!string.IsNullOrEmpty(settings.ApiKey))
-                {
-                    request.Headers.Authorization =
-                        new AuthenticationHeaderValue("Bearer", settings.ApiKey);
-                }
-                else if (!string.IsNullOrEmpty(fakeBearerToken))
-                {
-                    request.Headers.Authorization =
-                        new AuthenticationHeaderValue("Bearer", fakeBearerToken);
-                }
+                if (hasApiKey)
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
 
-                if (!string.IsNullOrEmpty(acceptHeader))
-                    request.Headers.TryAddWithoutValidation("Accept", acceptHeader);
-
-                string body =
-                    "{"
-                    + "\"model\":\"" + EscapeJson(model) + "\","
-                    + "\"messages\":["
-                    + "{"
-                    + "\"role\":\"user\","
-                    + "\"content\":\"" + EscapeJson(prompt) + "\""
-                    + "}"
-                    + "]"
-                    + "}";
-
-                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-
-                using (HttpResponseMessage response = await _http.SendAsync(request))
-                {
-                    string json = await response.Content.ReadAsStringAsync();
-
-                    EnsureSuccess(response, json);
-
-                    return ExtractBetween(
-                        json,
-                        "\"content\":\"",
-                        "\"",
-                        true);
-                }
+                JObject response = await SendAsync(request, CreateMessagesBody(model, prompt));
+                JToken content = response.SelectToken("choices[0].message.content");
+                string answer = content != null && content.Type == JTokenType.String
+                    ? content.Value<string>()
+                    : null;
+                return RequireText(provider, answer);
             }
         }
 
-        private async Task<string> AskGeminiAsync(
-            ProviderSettings settings,
-            string prompt,
-            string model)
+        private async Task<string> AskGeminiAsync(ProviderSettings settings, string prompt, string model)
         {
-            if (string.IsNullOrEmpty(settings.ApiKey))
-                throw new Exception("API key Gemini mancante nel file config.json.");
+            string url = settings.BaseUrl.TrimEnd('/') + "/" + Uri.EscapeDataString(model) + ":generateContent";
+            using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, url))
+            {
+                request.Headers.Add("x-goog-api-key", settings.ApiKey);
 
-            string url = settings.BaseUrl
-                         + "/"
-                         + model
-                         + ":generateContent?key="
-                         + settings.ApiKey;
+                JObject partBody = new JObject { { "text", prompt ?? "" } };
+                JObject contentBody = new JObject { { "parts", new JArray(partBody) } };
+                JObject body = new JObject { { "contents", new JArray(contentBody) } };
 
-            string body =
-                "{"
-                + "\"contents\":["
-                + "{"
-                + "\"parts\":["
-                + "{"
-                + "\"text\":\"" + EscapeJson(prompt) + "\""
-                + "}"
-                + "]"
-                + "}"
-                + "]"
-                + "}";
+                JObject response = await SendAsync(request, body);
+                StringBuilder answer = new StringBuilder();
+                foreach (JToken part in response.SelectTokens("candidates[0].content.parts[*]"))
+                {
+                    if (part.Value<bool?>("thought") != true)
+                        answer.Append(part.Value<string>("text"));
+                }
 
-            using (HttpResponseMessage response = await _http.PostAsync(
-                url,
-                new StringContent(body, Encoding.UTF8, "application/json")))
+                return RequireText(AiProvider.Gemini, answer.ToString());
+            }
+        }
+
+        private async Task<string> AskAnthropicAsync(ProviderSettings settings, string prompt, string model)
+        {
+            using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, settings.BaseUrl))
+            {
+                request.Headers.Add("x-api-key", settings.ApiKey);
+                request.Headers.Add("anthropic-version", "2023-06-01");
+
+                JObject body = CreateMessagesBody(model, prompt);
+                body.Add("max_tokens", 1024);
+
+                JObject response = await SendAsync(request, body);
+                StringBuilder answer = new StringBuilder();
+                foreach (JToken text in response.SelectTokens("content[?(@.type == 'text')].text"))
+                    answer.Append(text.Value<string>());
+
+                return RequireText(AiProvider.Anthropic, answer.ToString());
+            }
+        }
+
+        private static JObject CreateMessagesBody(string model, string prompt)
+        {
+            JObject message = new JObject { { "role", "user" }, { "content", prompt ?? "" } };
+            return new JObject { { "model", model }, { "messages", new JArray(message) } };
+        }
+
+        private static async Task<JObject> SendAsync(HttpRequestMessage request, JObject body)
+        {
+            request.Content = new StringContent(body.ToString(), Encoding.UTF8, "application/json");
+            using (HttpResponseMessage response = await _http.SendAsync(request))
             {
                 string json = await response.Content.ReadAsStringAsync();
-
                 EnsureSuccess(response, json);
-
-                return ExtractBetween(
-                    json,
-                    "\"text\":\"",
-                    "\"",
-                    true);
+                return JObject.Parse(json);
             }
         }
 
-        private async Task<string> AskAnthropicAsync(
-            ProviderSettings settings,
-            string prompt,
-            string model)
+        private static string RequireText(AiProvider provider, string answer)
         {
-            if (string.IsNullOrEmpty(settings.ApiKey))
-                throw new Exception("API key Anthropic mancante nel file config.json.");
+            if (string.IsNullOrWhiteSpace(answer))
+                throw new InvalidOperationException(provider + " non ha restituito una risposta testuale.");
 
-            using (HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, settings.BaseUrl))
-            {
-                request.Headers.TryAddWithoutValidation("x-api-key", settings.ApiKey);
-                request.Headers.TryAddWithoutValidation("anthropic-version", "2023-06-01");
-
-                string body =
-                    "{"
-                    + "\"model\":\"" + EscapeJson(model) + "\","
-                    + "\"max_tokens\":1024,"
-                    + "\"messages\":["
-                    + "{"
-                    + "\"role\":\"user\","
-                    + "\"content\":\"" + EscapeJson(prompt) + "\""
-                    + "}"
-                    + "]"
-                    + "}";
-
-                request.Content = new StringContent(body, Encoding.UTF8, "application/json");
-
-                using (HttpResponseMessage response = await _http.SendAsync(request))
-                {
-                    string json = await response.Content.ReadAsStringAsync();
-
-                    EnsureSuccess(response, json);
-
-                    return ExtractBetween(
-                        json,
-                        "\"text\":\"",
-                        "\"",
-                        true);
-                }
-            }
+            return answer;
         }
 
         private ProviderSettings GetProviderSettings(AiProvider provider)
@@ -238,8 +188,7 @@ namespace filetto_con_ai
                     break;
 
                 case AiProvider.GitHubModels:
-                    settings = _config.GitHubModels;
-                    break;
+                    throw new NotSupportedException("L'API di GitHub Models è stata ritirata.");
 
                 case AiProvider.Gemini:
                     settings = _config.Gemini;
@@ -311,91 +260,17 @@ namespace filetto_con_ai
             }
         }
 
-        private static string EscapeJson(string value)
-        {
-            if (value == null)
-                return "";
-
-            return value
-                .Replace("\\", "\\\\")
-                .Replace("\"", "\\\"")
-                .Replace("\r", "\\r")
-                .Replace("\n", "\\n")
-                .Replace("\t", "\\t");
-        }
-
-        private static string UnescapeJson(string value)
-        {
-            if (value == null)
-                return "";
-
-            return value
-                .Replace("\\n", "\n")
-                .Replace("\\r", "\r")
-                .Replace("\\t", "\t")
-                .Replace("\\\"", "\"")
-                .Replace("\\\\", "\\");
-        }
-
-        private static string ExtractBetween(
-            string source,
-            string startToken,
-            string endToken,
-            bool unescape)
-        {
-            int startIndex = source.IndexOf(startToken, StringComparison.Ordinal);
-
-            if (startIndex < 0)
-                throw new Exception("Campo risposta non trovato. Risposta ricevuta: " + source);
-
-            startIndex += startToken.Length;
-
-            StringBuilder result = new StringBuilder();
-            bool escaped = false;
-
-            for (int i = startIndex; i < source.Length; i++)
-            {
-                char c = source[i];
-
-                if (escaped)
-                {
-                    result.Append('\\');
-                    result.Append(c);
-                    escaped = false;
-                    continue;
-                }
-
-                if (c == '\\')
-                {
-                    escaped = true;
-                    continue;
-                }
-
-                if (source.Substring(i).StartsWith(endToken))
-                    break;
-
-                result.Append(c);
-            }
-
-            string extracted = result.ToString();
-
-            if (unescape)
-                return UnescapeJson(extracted);
-
-            return extracted;
-        }
-
         [DataContract]
         private class AiConfig
         {
+            [DataMember]
+            public string DefaultProvider { get; set; }
+
             [DataMember]
             public ProviderSettings OpenAI { get; set; }
 
             [DataMember]
             public ProviderSettings DeepSeek { get; set; }
-
-            [DataMember]
-            public ProviderSettings GitHubModels { get; set; }
 
             [DataMember]
             public ProviderSettings Gemini { get; set; }

@@ -6,6 +6,7 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -99,9 +100,21 @@ namespace WindowsFormsApp13
                     bottoniDiGioco[i, j].Text = gioco.caselle[i, j].getContenuto().ToString();
         }
 
-        private void button10_Click(object sender, EventArgs e)
+        private async void button10_Click(object sender, EventArgs e)
         {
-            giocataAIAsync();
+            button10.Enabled = false;
+            try
+            {
+                await giocataAIAsync();
+            }
+            catch (Exception error)
+            {
+                MessageBox.Show(this, error.Message, "Errore mossa AI", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                button10.Enabled = true;
+            }
         }
 
 
@@ -109,16 +122,16 @@ namespace WindowsFormsApp13
         private async Task giocataAIAsync()
         {
             String statoSerializzato = gioco.serializeStato();
-            String domanda = "Sei un esperto di tris e mi devi battere con la prossima giocata, la situazione del tabellone in cui le mie mosse sono le 'X', le tue sono le 'O' e gli spazi liberi sono il carattere nullo, è questo: \n\r" + statoSerializzato + "\n\r, il tabellone è un 3x3, vince chi mette 3 segni in fila, orizzontale, verticale e obliqua, la rappresentazione del tabellone è riga per riga. Rispondimi facendo la tua migliore mossa senza aggiungere commenti o spiegazioni ma solamente scrivendomi la nuova griglia di gioco con la tua mossa fatta su uno spazio vuoto";
+            String domanda = "Sei un esperto di tris e mi devi battere con la prossima giocata, la situazione del tabellone in cui le mie mosse sono le 'X', le tue sono le 'O' e gli spazi liberi sono il carattere nullo, è questo: \n\r" + statoSerializzato + "\n\r, il tabellone è un 3x3, vince chi mette 3 segni in fila, orizzontale, verticale e obliqua, la rappresentazione del tabellone è riga per riga. Rispondimi facendo la tua migliore mossa che massimizza le tue probabilità di vincita senza aggiungere commenti o spiegazioni ma solamente scrivendomi la nuova griglia di gioco con la tua mossa fatta su uno spazio vuoto. Usa lo stesso schema JSON del tabellone, senza Markdown.";
 
-            string risposta = await ai.AskAsync(
-                AiProvider.DeepSeek,
-                domanda);
+            string risposta = await ai.AskAsync(domanda);
 
-            gioco.deserializzaStato(risposta);
+            string griglia = Regex.Replace(
+                risposta.Trim(), @"\A```(?:json)?\s*(.*?)\s*```\z",
+                "$1", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+
+            gioco.deserializzaStato(griglia);
             refreshCaselleView();
-
-            Application.DoEvents();
         }
 
         private void Form1_Load(object sender, EventArgs e)

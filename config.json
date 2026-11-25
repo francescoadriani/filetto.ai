@@ -1,38 +1,34 @@
 {
+  "DefaultProvider": "Gemini",
   "OpenAI": {
     "ApiKey": "INSERISCI_OPENAI_API_KEY",
     "BaseUrl": "https://api.openai.com/v1/chat/completions",
     "DefaultModel": "gpt-4.1-mini"
   },
   "DeepSeek": {
-    "ApiKey": "sk-bc9d5b1fc0064c708e1f7e638ca9b8ff",
+    "ApiKey": "INSERISCI_OPENAI_API_KEY",
     "BaseUrl": "https://api.deepseek.com/chat/completions",
-    "DefaultModel": "deepseek-chat"
-  },
-  "GitHubModels": {
-    "ApiKey": "INSERISCI_GITHUB_TOKEN",
-    "BaseUrl": "https://models.github.ai/inference/chat/completions",
-    "DefaultModel": "openai/gpt-4.1-mini"
+    "DefaultModel": "deepseek-flash"
   },
   "Gemini": {
-    "ApiKey": "INSERISCI_GEMINI_API_KEY",
+    "ApiKey": "INSERISCI_OPENAI_API_KEY",
     "BaseUrl": "https://generativelanguage.googleapis.com/v1beta/models",
-    "DefaultModel": "gemini-2.5-flash"
+    "DefaultModel": "gemini-3.5-flash-lite"
   },
   "Anthropic": {
     "ApiKey": "INSERISCI_ANTHROPIC_API_KEY",
     "BaseUrl": "https://api.anthropic.com/v1/messages",
-    "DefaultModel": "claude-3-5-haiku-latest"
+    "DefaultModel": "claude-haiku-5-5"
   },
   "Mistral": {
     "ApiKey": "INSERISCI_MISTRAL_API_KEY",
     "BaseUrl": "https://api.mistral.ai/v1/chat/completions",
-    "DefaultModel": "mistral-small-latest"
+    "DefaultModel": "mistral-small-2603"
   },
   "Groq": {
     "ApiKey": "INSERISCI_GROQ_API_KEY",
     "BaseUrl": "https://api.groq.com/openai/v1/chat/completions",
-    "DefaultModel": "llama-3.3-70b-versatile"
+    "DefaultModel": "openai/gpt-oss-20b"
   },
   "Ollama": {
     "ApiKey": "",
