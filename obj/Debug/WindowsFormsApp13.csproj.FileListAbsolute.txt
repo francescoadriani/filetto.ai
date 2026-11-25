@@ -1,0 +1,28 @@
+C:\Users\sintec\source\repos\WindowsFormsApp13\bin\Debug\WindowsFormsApp13.exe.config
+C:\Users\sintec\source\repos\WindowsFormsApp13\bin\Debug\WindowsFormsApp13.exe
+C:\Users\sintec\source\repos\WindowsFormsApp13\bin\Debug\WindowsFormsApp13.pdb
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.csproj.AssemblyReference.cache
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.Form1.resources
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.Properties.Resources.resources
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.csproj.GenerateResource.cache
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.csproj.CoreCompileInputs.cache
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.exe
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.pdb
+C:\Users\sintec\source\repos\WindowsFormsApp13\bin\Debug\Newtonsoft.Json.dll
+C:\Users\sintec\source\repos\WindowsFormsApp13\bin\Debug\Newtonsoft.Json.xml
+C:\Users\sintec\source\repos\WindowsFormsApp13\obj\Debug\WindowsFormsApp13.csproj.CopyComplete
+C:\Users\sintec\source\repos\WindowsFormsApp13\bin\Debug\config.json
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\bin\Debug\config.json
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\bin\Debug\WindowsFormsApp13.exe.config
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\bin\Debug\WindowsFormsApp13.exe
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\bin\Debug\WindowsFormsApp13.pdb
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\bin\Debug\Newtonsoft.Json.dll
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\bin\Debug\Newtonsoft.Json.xml
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.csproj.AssemblyReference.cache
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.Form1.resources
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.Properties.Resources.resources
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.csproj.GenerateResource.cache
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.csproj.CoreCompileInputs.cache
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.csproj.CopyComplete
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.exe
+S:\Progetti su github\zefiro.corso.ai.per.programmatori\Repo di riferimento\Filetto con AI\obj\Debug\WindowsFormsApp13.pdb
